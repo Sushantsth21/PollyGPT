@@ -7,6 +7,5 @@ import Translate from './Translate.jsx'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
-    <Translate/>
   </React.StrictMode>,
 )

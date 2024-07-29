@@ -10,14 +10,17 @@ app.use(bodyParser.json());
 app.use(cors());
 
 const PORT = process.env.PORT || 3000;
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 app.post("/translate", async (req, res) => {
-  const { text } = req.body;
+  const { text, option } = req.body;
 
   const messages = [
     {
       role: "system",
-      content: "You are a translator. Translate the given data into Nepali",
+      content: `You are a translator. Translate the given data into ${option}`,
     },
     {
       role: "user",
@@ -25,10 +28,6 @@ app.post("/translate", async (req, res) => {
     },
   ];
   try {
-    const openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-
     const response = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: messages,
@@ -44,6 +43,50 @@ app.post("/translate", async (req, res) => {
   } catch (err) {
     console.log("error", err);
     res.status(500).json({ error: "Failed to translate text" });
+  }
+});
+
+app.post("/chat", async (req, res) => {
+  const { text } = req.body;
+
+  const messages = [
+    {
+      role: "system",
+      content:
+        "Ask the user what language they want to chat in. After that, chat with the user in that language but notify them if there are grammatical errors.",
+    },
+    {
+      role: "user",
+      content: text,
+    },
+  ];
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: messages,
+      temperature: 1,
+      max_tokens: 256,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
+
+    // Log the entire response for debugging purposes
+    console.log("OpenAI Response:", response);
+
+    // Extract the bot response
+    if (response && response.choices && response.choices.length > 0) {
+      const botResponse = response.choices[0].message.content;
+      res.json({ response: botResponse });
+    } else {
+      throw new Error("Unexpected response structure from OpenAI");
+    }
+  } catch (error) {
+    console.error("Error communicating with OpenAI:", error.message);
+    res
+      .status(500)
+      .json({ error: "An error occurred while processing your request." });
   }
 });
 
